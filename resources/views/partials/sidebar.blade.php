@@ -1,5 +1,5 @@
 @php
-  $usuario = (object) ['nombre_completo' => 'Usuario de demostración', 'correo' => 'demo@gravityfinance.local'];
+   $usuario = auth()->user();
 
   // [ruta, icono, texto]
   $principal = [

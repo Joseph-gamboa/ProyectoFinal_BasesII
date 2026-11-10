@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CuentaController;
 use App\Http\Controllers\DashboardController;
@@ -27,6 +28,9 @@ Route::middleware('auth')->group(function () {
     Route::put('/cuentas/{id}', [CuentaController::class, 'update'])->whereNumber('id')->name('cuentas.update');
     Route::patch('/cuentas/{id}/estado', [CuentaController::class, 'cambiarEstado'])->whereNumber('id')->name('cuentas.estado');
     Route::delete('/cuentas/{id}', [CuentaController::class, 'destroy'])->whereNumber('id')->name('cuentas.destroy');
+
+    // Auditoría (lee MongoDB)
+    Route::get('/auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
 
     // Módulos que todavía son pantallas provisionales
     Route::get('/{modulo}', ModuloController::class)

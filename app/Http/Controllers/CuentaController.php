@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AuditoriaService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,7 +12,8 @@ use Illuminate\Validation\Rule;
 
 /**
  * Módulo de Cuentas. Toda la lectura y escritura pasa por los
- * procedimientos almacenados de SQL Server (usp_Cuentas_*).
+ * procedimientos almacenados de SQL Server (usp_Cuentas_*) y cada
+ * acción exitosa queda registrada en la auditoría de MongoDB.
  */
 class CuentaController extends Controller
 {
@@ -35,15 +37,25 @@ class CuentaController extends Controller
         ]);
 
         return $this->ejecutar(function () use ($datos) {
-            DB::statement(
+            $nombre = trim($datos['nombre_cuenta']);
+            $saldo  = $datos['saldo_inicial'] ?? 0;
+
+            $fila = DB::select(
                 'DECLARE @id INT; EXEC dbo.usp_Cuentas_Insertar @id_usuario = ?, @nombre_cuenta = ?, '
-                . '@tipo_cuenta = ?, @moneda = ?, @saldo_inicial = ?, @id_cuenta = @id OUTPUT;',
+                . '@tipo_cuenta = ?, @moneda = ?, @saldo_inicial = ?, @id_cuenta = @id OUTPUT; '
+                . 'SELECT @id AS id_cuenta;',
+                [Auth::id(), $nombre, $datos['tipo_cuenta'], $datos['moneda'], $saldo]
+            )[0] ?? null;
+
+            AuditoriaService::registrar(
+                'CREAR', 'cuentas', $fila->id_cuenta ?? null,
+                "Cuenta «{$nombre}» ({$datos['tipo_cuenta']}, {$datos['moneda']})",
+                null,
                 [
-                    Auth::id(),
-                    trim($datos['nombre_cuenta']),
-                    $datos['tipo_cuenta'],
-                    $datos['moneda'],
-                    $datos['saldo_inicial'] ?? 0,
+                    'nombre_cuenta' => $nombre,
+                    'tipo_cuenta'   => $datos['tipo_cuenta'],
+                    'moneda'        => $datos['moneda'],
+                    'saldo_inicial' => (float) $saldo,
                 ]
             );
         }, 'Cuenta creada correctamente.');
@@ -60,10 +72,24 @@ class CuentaController extends Controller
         ]);
 
         return $this->ejecutar(function () use ($id, $datos, $cuenta) {
+            $nombre = trim($datos['nombre_cuenta']);
+
             DB::statement(
                 'EXEC dbo.usp_Cuentas_Actualizar @id_cuenta = ?, @nombre_cuenta = ?, '
                 . '@tipo_cuenta = ?, @moneda = ?, @estado = ?',
-                [$id, trim($datos['nombre_cuenta']), $datos['tipo_cuenta'], $datos['moneda'], $cuenta->estado]
+                [$id, $nombre, $datos['tipo_cuenta'], $datos['moneda'], $cuenta->estado]
+            );
+
+            AuditoriaService::registrar(
+                'EDITAR', 'cuentas', $id,
+                "Cuenta «{$nombre}»",
+                $this->datosCuenta($cuenta),
+                [
+                    'nombre_cuenta' => $nombre,
+                    'tipo_cuenta'   => $datos['tipo_cuenta'],
+                    'moneda'        => $datos['moneda'],
+                    'estado'        => $cuenta->estado,
+                ]
             );
         }, 'Cuenta actualizada.');
     }
@@ -83,15 +109,29 @@ class CuentaController extends Controller
                 . '@tipo_cuenta = ?, @moneda = ?, @estado = ?',
                 [$id, $cuenta->nombre_cuenta, $cuenta->tipo_cuenta, $cuenta->moneda, $datos['estado']]
             );
+
+            AuditoriaService::registrar(
+                $datos['estado'] === 'CERRADA' ? 'CERRAR' : 'REABRIR', 'cuentas', $id,
+                "Cuenta «{$cuenta->nombre_cuenta}»",
+                ['estado' => $cuenta->estado],
+                ['estado' => $datos['estado']]
+            );
         }, $datos['estado'] === 'CERRADA' ? 'Cuenta cerrada.' : 'Cuenta reabierta.');
     }
 
     public function destroy(int $id): RedirectResponse
     {
-        $this->cuentaDelUsuario($id);
+        $cuenta = $this->cuentaDelUsuario($id);
 
-        return $this->ejecutar(function () use ($id) {
+        return $this->ejecutar(function () use ($id, $cuenta) {
             DB::statement('EXEC dbo.usp_Cuentas_Eliminar @id_cuenta = ?', [$id]);
+
+            AuditoriaService::registrar(
+                'ELIMINAR', 'cuentas', $id,
+                "Cuenta «{$cuenta->nombre_cuenta}»",
+                $this->datosCuenta($cuenta),
+                null
+            );
         }, 'Cuenta eliminada.');
     }
 
@@ -106,6 +146,18 @@ class CuentaController extends Controller
         abort_if($cuenta === null, 404);
 
         return $cuenta;
+    }
+
+    /** Datos de una cuenta tal como se guardan en la auditoría. */
+    private function datosCuenta(object $c): array
+    {
+        return [
+            'nombre_cuenta' => $c->nombre_cuenta,
+            'tipo_cuenta'   => $c->tipo_cuenta,
+            'moneda'        => $c->moneda,
+            'saldo'         => (float) $c->saldo,
+            'estado'        => $c->estado,
+        ];
     }
 
     /** Ejecuta la acción y, si un procedimiento la rechaza, muestra su mensaje. */

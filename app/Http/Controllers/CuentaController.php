@@ -10,11 +10,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
-/**
- * Módulo de Cuentas. Toda la lectura y escritura pasa por los
- * procedimientos almacenados de SQL Server (usp_Cuentas_*) y cada
- * acción exitosa queda registrada en la auditoría de MongoDB.
- */
 class CuentaController extends Controller
 {
     public function index()

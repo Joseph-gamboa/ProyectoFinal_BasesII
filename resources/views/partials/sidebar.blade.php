@@ -6,20 +6,20 @@
     ['dashboard', 'bi-grid-fill', 'Dashboard'],
   ];
   $finanzas = [
-    ['modulo:cuentas',        'bi-bank',               'Cuentas'],
-    ['modulo:ingresos',       'bi-arrow-down-circle',  'Ingresos'],
-    ['modulo:gastos',         'bi-arrow-up-circle',    'Gastos'],
-    ['modulo:transferencias', 'bi-arrow-left-right',   'Transferencias'],
-    ['modulo:categorias',     'bi-tags',               'Categorías'],
+    ['cuentas.index',         'bi-bank',               'Cuentas'],
+    ['ingresos.index',        'bi-arrow-down-circle',  'Ingresos'],
+    ['gastos.index',          'bi-arrow-up-circle',    'Gastos'],
+    ['transferencias.index',  'bi-arrow-left-right',   'Transferencias'],
+    ['categorias.index',      'bi-tags',               'Categorías'],
   ];
   $planificacion = [
-    ['modulo:presupuestos', 'bi-pie-chart',  'Presupuestos'],
-    ['modulo:ahorros',      'bi-piggy-bank', 'Ahorros'],
+    ['presupuestos.index', 'bi-pie-chart',  'Presupuestos'],
+    ['ahorros.index',      'bi-piggy-bank', 'Ahorros'],
     ['modulo:deudas',       'bi-cash-coin',  'Deudas'],
-    ['modulo:reportes',     'bi-file-earmark-bar-graph', 'Reportes'],
+    ['reportes.index',     'bi-file-earmark-bar-graph', 'Reportes'],
   ];
   $sistema = [
-    ['modulo:auditoria', 'bi-shield-check', 'Auditoría'],
+    ['auditoria.index', 'bi-shield-check', 'Auditoría'],
   ];
 
   $grupos = array_filter([

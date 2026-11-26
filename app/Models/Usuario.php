@@ -44,4 +44,11 @@ class Usuario extends Authenticatable
     {
         return trim($this->nombre . ' ' . $this->apellido);
     }
+
+    public function getFotoPerfilUrlAttribute(): string
+    {
+        return $this->foto_perfil
+        ? \Illuminate\Support\Facades\Storage::disk('public') ->url($this->foto_perfil)
+        : asset('assets/images/avatar.png');
+}
 }

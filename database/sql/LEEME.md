@@ -24,18 +24,21 @@ Abrir cada archivo en SQL Server Management Studio y ejecutarlo con F5,
 | 6 | `06_sp_movimientos_registrar.sql` | Procedimiento grande 2: registrar un movimiento |
 | 7 | `07_sp_metas_aportar.sql` | Procedimiento grande 3: aportar a una meta de ahorro |
 | 8 | `08_sp_reporte_resumen.sql` | Procedimiento de reporte mensual |
-| 9 | `09_triggers.sql` | Los 3 triggers especiales (**siempre al final**) |
+| 9 | `09_triggers.sql` | Los 3 triggers especiales (después de los procedimientos) |
+| 10 | `10_indices.sql` | Índices adicionales para las consultas frecuentes |
 
-Los archivos 02 al 09 se pueden volver a ejecutar sin problema.
+Los archivos 02 al 10 se pueden volver a ejecutar sin problema.
 El archivo 01 no: si hay que repetirlo, primero se borra y se vuelve a crear la base.
 
 ## Comprobar que quedó bien
 
 ```sql
 SELECT name FROM sys.tables ORDER BY name;      -- deben salir 13 tablas
-SELECT name FROM sys.procedures ORDER BY name;  -- deben salir 31 procedimientos
+SELECT name FROM sys.procedures ORDER BY name;  -- deben salir 32 procedimientos
 SELECT name FROM sys.triggers ORDER BY name;    -- deben salir 3 triggers
 ```
+
+El script 10 conserva `IX_Movimientos_Cuenta_Fecha` si ya se creó manualmente.
 
 ## Importante
 

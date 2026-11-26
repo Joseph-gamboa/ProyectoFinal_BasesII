@@ -68,13 +68,17 @@
         <div class="dropdown ms-2">
             <button class="navbar-profile-btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
                 aria-expanded="false" id="profile-dropdown">
-                <img src="{{ asset('assets/images/avatar.png') }}" alt="Perfil" class="navbar-profile-img">
+                <img src="{{ auth()->user()->foto_perfil_url }}" alt="Perfil" class="navbar-profile-img">
                 <span class="navbar-profile-name d-none d-md-inline">{{ auth()->user()->nombre }}</span>
                 <i class="bi bi-chevron-down navbar-profile-caret"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end dropdown-menu-profile" aria-labelledby="profile-dropdown">
                 <li class="dropdown-header">{{ auth()->user()->correo }}</li>
-                <li><a class="dropdown-item" href="#"><i class="bi bi-person"></i> Mi perfil</a></li>
+               <li>
+                <a class="dropdown-item" href="{{ route('perfil.edit') }}">
+                    <i class="bi bi-person"></i> Mi perfil
+                    </a>
+                    </li>
                 <li>
                     <hr class="dropdown-divider">
                 </li>

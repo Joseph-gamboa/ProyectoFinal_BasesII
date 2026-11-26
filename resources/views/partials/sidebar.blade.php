@@ -3,7 +3,7 @@
 
   // [ruta, icono, texto]
   $principal = [
-    ['dashboard', 'bi-grid-fill', 'Dashboard'],
+    ['dashboard', 'bi-grid-fill', 'Inicio'],
   ];
   $finanzas = [
     ['cuentas.index',         'bi-bank',               'Cuentas'],

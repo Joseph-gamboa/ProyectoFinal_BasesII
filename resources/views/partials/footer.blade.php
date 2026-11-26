@@ -6,7 +6,7 @@
   </div>
   <div class="footer-right">
     <ul class="footer-links">
-      <li><a href="{{ route('dashboard') }}" class="footer-link">Dashboard</a></li>
+      <li><a href="{{ route('dashboard') }}" class="footer-link">Inicio</a></li>
       <li><a href="{{ route('modulo', 'reportes') }}" class="footer-link">Reportes</a></li>
     </ul>
   </div>

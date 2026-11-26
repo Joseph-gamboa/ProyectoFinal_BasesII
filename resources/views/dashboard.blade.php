@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard')
-@section('page-title', 'Dashboard')
+@section('title', 'Inicio')
+@section('page-title', 'Inicio')
 @section('page-subtitle', 'Resumen general de tus finanzas personales.')
 
 @section('page-actions')

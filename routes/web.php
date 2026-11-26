@@ -13,6 +13,7 @@ use App\Http\Controllers\Modules\PresupuestoController;
 use App\Http\Controllers\Modules\ReporteController;
 use App\Http\Controllers\Modules\TransferenciaController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PerfilController;
 
 Route::get('/', fn () => redirect()->route('dashboard'));
 
@@ -28,6 +29,11 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
+    // Perfil del usuario conectado
+    Route::get('/perfil', [PerfilController::class, 'edit'])->name('perfil.edit');
+
+    Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
 
     // Cuentas
     Route::get('/cuentas', [CuentaController::class, 'index'])->name('cuentas.index');

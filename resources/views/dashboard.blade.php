@@ -29,7 +29,7 @@
             <div class="alert-green-date">Cuentas activas en colones</div>
             <div class="alert-green-text">{{ $crc($balance) }}</div>
           </div>
-          <a href="{{ route('modulo', 'cuentas') }}" class="alert-green-link z-index-2">
+          <a href="{{ url('/cuentas') }}" class="alert-green-link z-index-2">
             <span>Ver cuentas</span>
             <i class="bi bi-arrow-right"></i>
           </a>
@@ -166,7 +166,13 @@
         <div class="stat-value">{{ $crc($ahorros) }}</div>
       </div>
       @forelse ($metas as $meta)
-        @php $pct = min(100, round($meta->monto_actual / $meta->monto_objetivo * 100)); @endphp
+        @php
+  $pct = $meta->monto_objetivo > 0
+      ? max(0, min(100, round(
+          $meta->monto_actual / $meta->monto_objetivo * 100
+        )))
+      : 0;
+@endphp
         <div class="progress-container">
           <div class="progress-label-row">
             <span class="progress-label">{{ $meta->nombre }}</span>

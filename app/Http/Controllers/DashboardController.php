@@ -3,58 +3,190 @@
 namespace App\Http\Controllers;
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // Datos ficticios para visualizar el diseño mientras se desarrolla la base de datos.
+        $idUsuario = Auth::id();
         $hoy = Carbon::today();
-        $inicio = $hoy->copy()->subMonths(5)->startOfMonth();
+        $inicioMes = $hoy->copy()->startOfMonth();
+        $inicioGrafico = $hoy->copy()->subMonths(5)->startOfMonth();
+
+        // Movimientos de todas las cuentas, sin excluir USD.
+        $movimientos = fn () => DB::table('Movimientos as m')
+            ->join('Cuentas as cu', 'cu.id_cuenta', '=', 'm.id_cuenta')
+            ->where('cu.id_usuario', $idUsuario)
+            ->where('m.estado', 'ACTIVO');
+
+        // Saldos separados por moneda.
+        $balance = (float) DB::table('Cuentas')
+            ->where('id_usuario', $idUsuario)
+            ->where('moneda', 'CRC')
+            ->where('estado', 'ACTIVA')
+            ->sum('saldo');
+
+        $balanceUsd = (float) DB::table('Cuentas')
+            ->where('id_usuario', $idUsuario)
+            ->where('moneda', 'USD')
+            ->where('estado', 'ACTIVA')
+            ->sum('saldo');
+
+        // Ahorros y metas.
+        $ahorros = (float) DB::table('MetasAhorro')
+            ->where('id_usuario', $idUsuario)
+            ->where('estado', '<>', 'CANCELADA')
+            ->sum('monto_actual');
+
+        // Movimientos de los últimos seis meses.
+        $filas = $movimientos()
+            ->where('m.fecha', '>=', $inicioGrafico->toDateString())
+            ->get([
+                'm.fecha',
+                'm.tipo_movimiento',
+                'm.monto',
+                'cu.moneda'
+            ]);
+
         $etiquetas = [];
+        $ingresosCRC = [];
+        $gastosCRC = [];
+        $ingresosUSD = [];
+        $gastosUSD = [];
 
         for ($i = 0; $i < 6; $i++) {
-            $etiquetas[] = ucfirst($inicio->copy()->addMonths($i)->locale('es')->translatedFormat('M'));
+            $mes = $inicioGrafico->copy()->addMonths($i);
+            $clave = $mes->format('Y-m');
+
+            $delMes = $filas->filter(
+                fn ($f) => substr((string) $f->fecha, 0, 7) === $clave
+            );
+
+            $delCRC = $delMes->where('moneda', 'CRC');
+            $delUSD = $delMes->where('moneda', 'USD');
+
+            $etiquetas[] = ucfirst(
+                $mes->locale('es')->translatedFormat('M')
+            );
+
+            $ingresosCRC[] = (float) $delCRC
+                ->where('tipo_movimiento', 'INGRESO')->sum('monto');
+
+            $gastosCRC[] = (float) $delCRC
+                ->where('tipo_movimiento', 'GASTO')->sum('monto');
+
+            $ingresosUSD[] = (float) $delUSD
+                ->where('tipo_movimiento', 'INGRESO')->sum('monto');
+
+            $gastosUSD[] = (float) $delUSD
+                ->where('tipo_movimiento', 'GASTO')->sum('monto');
         }
 
-        $ingresosMes = 850000;
-        $gastosMes = 325000;
-        $balance = 2450000;
-        $ahorros = 680000;
+        // Totales del mes actual.
+        $movimientosMes = $filas->filter(
+            fn ($f) => substr((string) $f->fecha, 0, 7) === $hoy->format('Y-m')
+        );
 
-        $ultimos = collect([
-            (object) ['tipo_transaccion' => 'INGRESO', 'monto' => 450000, 'fecha' => $hoy->copy()->subDays(1), 'descripcion' => 'Salario mensual', 'categoria' => 'Trabajo'],
-            (object) ['tipo_transaccion' => 'GASTO', 'monto' => 85000, 'fecha' => $hoy->copy()->subDays(2), 'descripcion' => 'Compra de supermercado', 'categoria' => 'Alimentación'],
-            (object) ['tipo_transaccion' => 'GASTO', 'monto' => 25000, 'fecha' => $hoy->copy()->subDays(4), 'descripcion' => 'Servicio de internet', 'categoria' => 'Servicios'],
-            (object) ['tipo_transaccion' => 'INGRESO', 'monto' => 120000, 'fecha' => $hoy->copy()->subDays(6), 'descripcion' => 'Proyecto freelance', 'categoria' => 'Otros ingresos'],
-        ]);
+        $mesCRC = $movimientosMes->where('moneda', 'CRC');
+        $mesUSD = $movimientosMes->where('moneda', 'USD');
 
-        $porCategoria = collect([
-            (object) ['nombre' => 'Alimentación', 'total' => 125000],
-            (object) ['nombre' => 'Transporte', 'total' => 80000],
-            (object) ['nombre' => 'Servicios', 'total' => 65000],
-            (object) ['nombre' => 'Entretenimiento', 'total' => 35000],
-        ]);
+        $ingresosMesCRC = (float) $mesCRC
+            ->where('tipo_movimiento', 'INGRESO')->sum('monto');
 
-        $metas = collect([
-            (object) ['nombre' => 'Viaje', 'monto_objetivo' => 500000, 'monto_actual' => 350000],
-            (object) ['nombre' => 'Fondo de emergencia', 'monto_objetivo' => 1000000, 'monto_actual' => 330000],
-        ]);
+        $gastosMesCRC = (float) $mesCRC
+            ->where('tipo_movimiento', 'GASTO')->sum('monto');
+
+        $ingresosMesUSD = (float) $mesUSD
+            ->where('tipo_movimiento', 'INGRESO')->sum('monto');
+
+        $gastosMesUSD = (float) $mesUSD
+            ->where('tipo_movimiento', 'GASTO')->sum('monto');
+
+        // Gastos por categoría y moneda.
+        $porCategoria = $movimientos()
+            ->join('Categorias as c', 'c.id_categoria', '=', 'm.id_categoria')
+            ->where('m.tipo_movimiento', 'GASTO')
+            ->where('m.fecha', '>=', $inicioMes->toDateString())
+            ->groupBy('c.nombre_categoria', 'cu.moneda')
+            ->selectRaw(
+                'c.nombre_categoria as nombre, cu.moneda as moneda, SUM(m.monto) as total'
+            )
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($f) => (object) [
+                'nombre' => $f->nombre,
+                'moneda' => $f->moneda,
+                'total' => (float) $f->total,
+            ]);
+
+        $maxCategoriaPorMoneda = [
+            'CRC' => (float) ($porCategoria->where('moneda', 'CRC')->max('total') ?? 0),
+            'USD' => (float) ($porCategoria->where('moneda', 'USD')->max('total') ?? 0),
+        ];
+
+        // Últimos movimientos.
+        $ultimos = $movimientos()
+            ->join('Categorias as c', 'c.id_categoria', '=', 'm.id_categoria')
+            ->leftJoin('Ingresos as i', 'i.id_movimiento', '=', 'm.id_movimiento')
+            ->leftJoin('Gastos as g', 'g.id_movimiento', '=', 'm.id_movimiento')
+            ->orderByDesc('m.fecha')
+            ->orderByDesc('m.id_movimiento')
+            ->limit(5)
+            ->selectRaw(
+                'm.tipo_movimiento, m.monto, m.fecha, cu.moneda,
+                 c.nombre_categoria,
+                 COALESCE(m.descripcion, g.comercio, i.fuente) as descripcion'
+            )
+            ->get()
+            ->map(fn ($f) => (object) [
+                'tipo_transaccion' => $f->tipo_movimiento,
+                'monto' => (float) $f->monto,
+                'moneda' => $f->moneda,
+                'fecha' => Carbon::parse($f->fecha),
+                'descripcion' => $f->descripcion,
+                'categoria' => $f->nombre_categoria,
+            ]);
+
+        // Metas de ahorro.
+        $metas = DB::table('MetasAhorro')
+            ->where('id_usuario', $idUsuario)
+            ->where('estado', 'EN_CURSO')
+            ->orderBy('nombre_meta')
+            ->limit(4)
+            ->get(['nombre_meta', 'monto_objetivo', 'monto_actual'])
+            ->map(fn ($f) => (object) [
+                'nombre' => $f->nombre_meta,
+                'monto_objetivo' => (float) $f->monto_objetivo,
+                'monto_actual' => (float) $f->monto_actual,
+            ]);
 
         return view('dashboard', [
             'balance' => $balance,
-            'ingresosMes' => $ingresosMes,
-            'gastosMes' => $gastosMes,
+            'balanceUsd' => $balanceUsd,
+
+            'ingresosMesCRC' => $ingresosMesCRC,
+            'gastosMesCRC' => $gastosMesCRC,
+            'ingresosMesUSD' => $ingresosMesUSD,
+            'gastosMesUSD' => $gastosMesUSD,
+
             'ahorros' => $ahorros,
             'porCategoria' => $porCategoria,
-            'maxCategoria' => (float) ($porCategoria->max('total') ?? 0),
+            'maxCategoriaPorMoneda' => $maxCategoriaPorMoneda,
             'ultimos' => $ultimos,
             'metas' => $metas,
-            'mesActual' => ucfirst($hoy->locale('es')->translatedFormat('F Y')),
+
+            'mesActual' => ucfirst(
+                $hoy->locale('es')->translatedFormat('F Y')
+            ),
+
             'grafico' => [
                 'etiquetas' => $etiquetas,
-                'ingresos' => [520000, 680000, 610000, 790000, 720000, $ingresosMes],
-                'gastos' => [310000, 420000, 380000, 460000, 290000, $gastosMes],
+                'ingresosCRC' => $ingresosCRC,
+                'gastosCRC' => $gastosCRC,
+                'ingresosUSD' => $ingresosUSD,
+                'gastosUSD' => $gastosUSD,
             ],
         ]);
     }

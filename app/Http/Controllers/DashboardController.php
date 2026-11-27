@@ -15,13 +15,11 @@ class DashboardController extends Controller
         $inicioMes = $hoy->copy()->startOfMonth();
         $inicioGrafico = $hoy->copy()->subMonths(5)->startOfMonth();
 
-        // Movimientos de todas las cuentas, sin excluir USD.
         $movimientos = fn () => DB::table('Movimientos as m')
             ->join('Cuentas as cu', 'cu.id_cuenta', '=', 'm.id_cuenta')
             ->where('cu.id_usuario', $idUsuario)
             ->where('m.estado', 'ACTIVO');
 
-        // Saldos separados por moneda.
         $balance = (float) DB::table('Cuentas')
             ->where('id_usuario', $idUsuario)
             ->where('moneda', 'CRC')
@@ -34,13 +32,11 @@ class DashboardController extends Controller
             ->where('estado', 'ACTIVA')
             ->sum('saldo');
 
-        // Ahorros y metas.
         $ahorros = (float) DB::table('MetasAhorro')
             ->where('id_usuario', $idUsuario)
             ->where('estado', '<>', 'CANCELADA')
             ->sum('monto_actual');
 
-        // Movimientos de los últimos seis meses.
         $filas = $movimientos()
             ->where('m.fecha', '>=', $inicioGrafico->toDateString())
             ->get([
@@ -84,7 +80,6 @@ class DashboardController extends Controller
                 ->where('tipo_movimiento', 'GASTO')->sum('monto');
         }
 
-        // Totales del mes actual.
         $movimientosMes = $filas->filter(
             fn ($f) => substr((string) $f->fecha, 0, 7) === $hoy->format('Y-m')
         );
@@ -104,7 +99,6 @@ class DashboardController extends Controller
         $gastosMesUSD = (float) $mesUSD
             ->where('tipo_movimiento', 'GASTO')->sum('monto');
 
-        // Gastos por categoría y moneda.
         $porCategoria = $movimientos()
             ->join('Categorias as c', 'c.id_categoria', '=', 'm.id_categoria')
             ->where('m.tipo_movimiento', 'GASTO')
@@ -126,7 +120,6 @@ class DashboardController extends Controller
             'USD' => (float) ($porCategoria->where('moneda', 'USD')->max('total') ?? 0),
         ];
 
-        // Últimos movimientos.
         $ultimos = $movimientos()
             ->join('Categorias as c', 'c.id_categoria', '=', 'm.id_categoria')
             ->leftJoin('Ingresos as i', 'i.id_movimiento', '=', 'm.id_movimiento')
@@ -149,7 +142,6 @@ class DashboardController extends Controller
                 'categoria' => $f->nombre_categoria,
             ]);
 
-        // Metas de ahorro.
         $metas = DB::table('MetasAhorro')
             ->where('id_usuario', $idUsuario)
             ->where('estado', 'EN_CURSO')

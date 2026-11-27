@@ -4,10 +4,6 @@ namespace App\Models;
 
 use MongoDB\Laravel\Eloquent\Model;
 
-/**
- * Registro de auditoría. Vive en MongoDB (base gravity_auditoria,
- * colección auditoria), no en SQL Server.
- */
 class Auditoria extends Model
 {
     protected $connection = 'mongodb';

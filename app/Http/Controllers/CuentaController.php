@@ -136,7 +136,6 @@ class CuentaController extends Controller
         }, 'Cuenta eliminada.');
     }
 
-    /** Devuelve la cuenta solo si es del usuario con sesión; si no, error 404. */
     private function cuentaDelUsuario(int $id): object
     {
         $cuenta = collect($this->bd()->consultar('usp_Cuentas_Consultar', [
@@ -149,7 +148,6 @@ class CuentaController extends Controller
         return $cuenta;
     }
 
-    /** Datos de una cuenta tal como se guardan en la auditoría. */
     private function datosCuenta(object $c): array
     {
         return [

@@ -8,10 +8,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
-/**
- * Pantalla de auditoría: lee los registros guardados en MongoDB.
- * El administrador ve todo; un usuario normal solo ve sus propias acciones.
- */
 class AuditoriaController extends Controller
 {
     private const MODULOS  = ['cuentas', 'movimientos', 'transferencias', 'presupuestos', 'metas', 'deudas', 'categorias', 'usuarios'];

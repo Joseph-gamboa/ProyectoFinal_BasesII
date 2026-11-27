@@ -5,10 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
-/**
- * Usuario de Gravity Finance (tabla dbo.Usuarios de SQL Server).
- * Reemplaza al modelo User por defecto de Laravel (ver AUTH_MODEL en .env).
- */
 class Usuario extends Authenticatable
 {
     protected $table = 'Usuarios';
@@ -18,13 +14,11 @@ class Usuario extends Authenticatable
     protected $fillable = ['nombre', 'apellido', 'correo', 'contrasena_hash', 'estado'];
     protected $hidden = ['contrasena_hash'];
 
-    /** La contraseña vive en la columna contrasena_hash, no en "password". */
     public function getAuthPassword(): string
     {
         return $this->contrasena_hash;
     }
 
-    /** La tabla Usuarios no tiene remember_token: se desactiva "recordarme". */
     public function getRememberTokenName(): string
     {
         return '';

@@ -9,10 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 class AuditoriaService
 {
-    /**
-     * Guarda un evento en MongoDB. Nunca lanza errores: si MongoDB falla,
-     * la acción del usuario continúa y solo se deja un aviso en el log.
-     */
+
     public static function registrar(
         string $accion,
         string $modulo,

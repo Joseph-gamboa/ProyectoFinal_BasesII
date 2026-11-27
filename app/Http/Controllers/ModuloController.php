@@ -2,11 +2,6 @@
 
 namespace App\Http\Controllers;
 
-/**
- * Pantalla provisional para los módulos que todavía no se implementan.
- * Cuando un módulo tenga su propio controlador, se agrega su ruta en
- * routes/web.php y se borra su entrada de aquí.
- */
 class ModuloController extends Controller
 {
     private const MODULOS = [

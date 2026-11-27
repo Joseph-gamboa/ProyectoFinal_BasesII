@@ -6,10 +6,6 @@ use App\Services\Database\Procedimientos;
 use Illuminate\Support\Facades\DB;
 use PDO;
 
-/**
- * Implementación OFICIAL (SQL Server). Genera exactamente las mismas
- * sentencias EXEC dbo.usp_... que los controladores tenían escritas a mano.
- */
 class SqlServerProcedimientos implements Procedimientos
 {
     public function consultar(string $procedimiento, array $parametros = []): array
@@ -53,7 +49,6 @@ class SqlServerProcedimientos implements Procedimientos
 
     public function anularMovimiento(int $idMovimiento): void
     {
-        // El trigger INSTEAD OF DELETE convierte este DELETE en "anular y devolver el dinero".
         DB::statement('DELETE FROM dbo.Movimientos WHERE id_movimiento = ?', [$idMovimiento]);
     }
 
@@ -73,12 +68,6 @@ class SqlServerProcedimientos implements Procedimientos
         return 'No se pudo completar la operación. Intente de nuevo.';
     }
 
-    /**
-     * Arma "EXEC dbo.usp @a = ?, @b = NULL, @salida = @id OUTPUT".
-     * Los NULL van escritos en la sentencia (como en el código original) y no como valores enlazados.
-     *
-     * @return array{0: string, 1: array}
-     */
     private function exec(string $procedimiento, array $parametros, ?string $salida = null): array
     {
         $partes  = [];

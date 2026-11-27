@@ -25,7 +25,6 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        // Solo usuarios ACTIVOS pueden entrar (la columna estado de dbo.Usuarios).
         $credenciales = [
             'correo'   => $datos['correo'],
             'password' => $datos['password'],
@@ -66,7 +65,6 @@ class AuthController extends Controller
                 'estado'          => 'ACTIVO',
             ]);
 
-            // Todo usuario nuevo recibe el rol "Usuario".
             $rol = Rol::where('nombre', 'Usuario')->firstOrFail();
             $usuario->roles()->attach($rol->id_rol);
 

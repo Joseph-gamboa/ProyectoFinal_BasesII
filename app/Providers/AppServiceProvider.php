@@ -10,14 +10,10 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
+
     public function register(): void
     {
-        // El motor lo decide DB_CONNECTION en el .env de cada quien:
-        //   sqlsrv          -> SQL Server (oficial, el del equipo)
-        //   mariadb / mysql -> MariaDB (solo desarrollo local)
+
         $this->app->singleton(Procedimientos::class, function ($app) {
             $conexion = config('database.default');
             $driver   = config("database.connections.{$conexion}.driver");
@@ -32,9 +28,6 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         Paginator::useBootstrapFive();

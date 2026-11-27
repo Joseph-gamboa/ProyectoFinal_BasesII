@@ -32,38 +32,12 @@
         </div>
     </div>
 
-    <div class="navbar-search-wrapper">
-        <input type="text" class="navbar-search-input" placeholder="Buscar en Gravity Finance..." id="main-search">
-        <button class="navbar-search-btn" aria-label="Buscar">
-            <i class="bi bi-search"></i>
-        </button>
-    </div>
-
     <div class="navbar-actions">
         <button class="navbar-action-btn me-1" aria-label="Pantalla completa" id="btn-fullscreen">
             <i class="bi bi-arrows-fullscreen"></i>
         </button>
-        <!-- Notificaciones: se conectarán a la colección "notificaciones" de MongoDB -->
-        <div class="dropdown">
-            <button class="navbar-action-btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
-                aria-expanded="false" id="btn-notifications" data-bs-auto-close="outside">
-                <i class="bi bi-bell"></i>
-            </button>
-            <div class="dropdown-menu dropdown-menu-end dropdown-menu-notification p-0"
-                aria-labelledby="btn-notifications">
-                <div class="notification-header">
-                    <h6 class="notification-title">Notificaciones</h6>
-                </div>
-                <div class="notification-list">
-                    <div class="notification-item">
-                        <div class="notification-content">
-                            <p class="notification-text mb-0">No tienes notificaciones nuevas.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
+        
         <div class="dropdown ms-2">
             <button class="navbar-profile-btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
                 aria-expanded="false" id="profile-dropdown">

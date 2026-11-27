@@ -8,7 +8,6 @@ use App\Services\AuditoriaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class AhorroController extends Controller
 {
@@ -16,15 +15,16 @@ class AhorroController extends Controller
 
     public function index()
     {
-        $metas = collect(DB::select(
-            'EXEC dbo.usp_MetasAhorro_Consultar @id_usuario = ?, @id_meta = NULL, @estado = NULL',
-            [Auth::id()]
-        ));
+        $metas = collect($this->bd()->consultar('usp_MetasAhorro_Consultar', [
+            'id_usuario' => Auth::id(),
+            'id_meta'    => null,
+            'estado'     => null,
+        ]));
 
-        $cuentas = collect(DB::select(
-            'EXEC dbo.usp_Cuentas_Consultar @id_usuario = ?',
-            [Auth::id()]
-        ))->filter(fn ($c) => $c->estado === 'ACTIVA' && $c->moneda === 'CRC' && $c->tipo_cuenta !== 'TARJETA')
+        $cuentas = collect($this->bd()->consultar('usp_Cuentas_Consultar', [
+            'id_usuario' => Auth::id(),
+            'id_cuenta'  => null,
+        ]))->filter(fn ($c) => $c->estado === 'ACTIVA' && $c->moneda === 'CRC' && $c->tipo_cuenta !== 'TARJETA')
           ->values();
 
         return view('modulos.ahorros', compact('metas', 'cuentas'));
@@ -41,11 +41,12 @@ class AhorroController extends Controller
         return $this->ejecutar(function () use ($datos) {
             $nombre = trim($datos['nombre_meta']);
 
-            $fila = DB::select(
-                'DECLARE @id INT; EXEC dbo.usp_MetasAhorro_Insertar @id_usuario = ?, @nombre_meta = ?, '
-                . '@monto_objetivo = ?, @fecha_limite = ?, @id_meta = @id OUTPUT; SELECT @id AS id_meta;',
-                [Auth::id(), $nombre, $datos['monto_objetivo'], $datos['fecha_limite'] ?? null]
-            )[0] ?? null;
+            $fila = $this->bd()->registrar('usp_MetasAhorro_Insertar', [
+                'id_usuario'     => Auth::id(),
+                'nombre_meta'    => $nombre,
+                'monto_objetivo' => $datos['monto_objetivo'],
+                'fecha_limite'   => $datos['fecha_limite'] ?? null,
+            ], 'id_meta');
 
             AuditoriaService::registrar(
                 'CREAR', 'metas', $fila->id_meta ?? null,
@@ -73,11 +74,12 @@ class AhorroController extends Controller
         return $this->ejecutar(function () use ($id, $datos, $antes) {
             $nombre = trim($datos['nombre_meta']);
 
-            DB::statement(
-                'EXEC dbo.usp_MetasAhorro_Actualizar @id_meta = ?, @nombre_meta = ?, '
-                . '@monto_objetivo = ?, @fecha_limite = ?',
-                [$id, $nombre, $datos['monto_objetivo'], $datos['fecha_limite'] ?? null]
-            );
+            $this->bd()->llamar('usp_MetasAhorro_Actualizar', [
+                'id_meta'        => $id,
+                'nombre_meta'    => $nombre,
+                'monto_objetivo' => $datos['monto_objetivo'],
+                'fecha_limite'   => $datos['fecha_limite'] ?? null,
+            ]);
 
             AuditoriaService::registrar(
                 'EDITAR', 'metas', $id,
@@ -97,7 +99,7 @@ class AhorroController extends Controller
         $antes = $this->metaDelUsuario($id);
 
         return $this->ejecutar(function () use ($id, $antes) {
-            DB::statement('EXEC dbo.usp_MetasAhorro_Eliminar @id_meta = ?', [$id]);
+            $this->bd()->llamar('usp_MetasAhorro_Eliminar', ['id_meta' => $id]);
 
             AuditoriaService::registrar(
                 'ELIMINAR', 'metas', $id,
@@ -118,12 +120,12 @@ class AhorroController extends Controller
         ]);
 
         return $this->ejecutar(function () use ($id, $meta, $datos) {
-            $fila = DB::selectOne(
-                'DECLARE @id INT;
-                 EXEC dbo.usp_MetasAhorro_Aportar
-                     @id_usuario = ?, @id_meta = ?, @id_cuenta = ?, @monto = ?, @id_aporte = @id OUTPUT;',
-                [Auth::id(), $id, $datos['id_cuenta'], $datos['monto']]
-            );
+            $fila = $this->bd()->registrar('usp_MetasAhorro_Aportar', [
+                'id_usuario' => Auth::id(),
+                'id_meta'    => $id,
+                'id_cuenta'  => $datos['id_cuenta'],
+                'monto'      => $datos['monto'],
+            ], 'id_aporte');
 
             AuditoriaService::registrar(
                 'APORTAR', 'metas', $id,
@@ -144,10 +146,11 @@ class AhorroController extends Controller
 
     private function metaDelUsuario(int $id): object
     {
-        $meta = collect(DB::select(
-            'EXEC dbo.usp_MetasAhorro_Consultar @id_usuario = ?, @id_meta = ?, @estado = NULL',
-            [Auth::id(), $id]
-        ))->first();
+        $meta = collect($this->bd()->consultar('usp_MetasAhorro_Consultar', [
+            'id_usuario' => Auth::id(),
+            'id_meta'    => $id,
+            'estado'     => null,
+        ]))->first();
 
         abort_if($meta === null, 404);
 

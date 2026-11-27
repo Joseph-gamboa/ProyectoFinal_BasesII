@@ -2,12 +2,22 @@
 
 namespace App\Http\Controllers\Concerns;
 
+use App\Services\Database\Procedimientos;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 
 trait EjecutaProcedimientos
 {
+    /** Acceso a los procedimientos almacenados del motor configurado (SQL Server o MariaDB). */
+    protected function bd(): Procedimientos
+    {
+        return app(Procedimientos::class);
+    }
 
+    /**
+     * Ejecuta la acción y, si un procedimiento la rechaza, muestra su mensaje.
+     * Si la acción devuelve un texto, se muestra como aviso (no como error).
+     */
     protected function ejecutar(callable $accion, string $mensajeExito): RedirectResponse
     {
         try {
@@ -23,14 +33,9 @@ trait EjecutaProcedimientos
             : $respuesta;
     }
 
+    /** Extrae solo el texto que escribió el procedimiento (THROW en SQL Server, SIGNAL en MariaDB). */
     protected function mensajeDeSql(QueryException $e): string
     {
-        $texto = $e->getPrevious()?->getMessage() ?? $e->getMessage();
-
-        if (preg_match('/\[SQL Server\](.+)$/s', $texto, $m)) {
-            return trim($m[1]);
-        }
-
-        return 'No se pudo completar la operación. Intente de nuevo.';
+        return $this->bd()->mensajeDeError($e);
     }
 }

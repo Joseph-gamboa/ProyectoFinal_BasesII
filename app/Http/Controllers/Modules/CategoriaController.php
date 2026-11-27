@@ -8,7 +8,6 @@ use App\Services\AuditoriaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class CategoriaController extends Controller
@@ -17,9 +16,10 @@ class CategoriaController extends Controller
 
     public function index()
     {
-        $categorias = collect(DB::select(
-            'EXEC dbo.usp_Categorias_Consultar @id_categoria = NULL, @tipo_categoria = NULL'
-        ));
+        $categorias = collect($this->bd()->consultar('usp_Categorias_Consultar', [
+            'id_categoria'   => null,
+            'tipo_categoria' => null,
+        ]));
 
         $esAdmin = $this->esAdmin();
 
@@ -38,11 +38,10 @@ class CategoriaController extends Controller
         return $this->ejecutar(function () use ($datos) {
             $nombre = trim($datos['nombre_categoria']);
 
-            $fila = DB::select(
-                'DECLARE @id INT; EXEC dbo.usp_Categorias_Insertar @nombre_categoria = ?, '
-                . '@tipo_categoria = ?, @id_categoria = @id OUTPUT; SELECT @id AS id_categoria;',
-                [$nombre, $datos['tipo_categoria']]
-            )[0] ?? null;
+            $fila = $this->bd()->registrar('usp_Categorias_Insertar', [
+                'nombre_categoria' => $nombre,
+                'tipo_categoria'   => $datos['tipo_categoria'],
+            ], 'id_categoria');
 
             AuditoriaService::registrar(
                 'CREAR', 'categorias', $fila->id_categoria ?? null,
@@ -66,10 +65,11 @@ class CategoriaController extends Controller
         return $this->ejecutar(function () use ($id, $datos, $antes) {
             $nombre = trim($datos['nombre_categoria']);
 
-            DB::statement(
-                'EXEC dbo.usp_Categorias_Actualizar @id_categoria = ?, @nombre_categoria = ?, @tipo_categoria = ?',
-                [$id, $nombre, $datos['tipo_categoria']]
-            );
+            $this->bd()->llamar('usp_Categorias_Actualizar', [
+                'id_categoria'     => $id,
+                'nombre_categoria' => $nombre,
+                'tipo_categoria'   => $datos['tipo_categoria'],
+            ]);
 
             AuditoriaService::registrar(
                 'EDITAR', 'categorias', $id,
@@ -86,7 +86,7 @@ class CategoriaController extends Controller
         $antes = $this->categoria($id);
 
         return $this->ejecutar(function () use ($id, $antes) {
-            DB::statement('EXEC dbo.usp_Categorias_Eliminar @id_categoria = ?', [$id]);
+            $this->bd()->llamar('usp_Categorias_Eliminar', ['id_categoria' => $id]);
 
             AuditoriaService::registrar(
                 'ELIMINAR', 'categorias', $id,
@@ -109,10 +109,10 @@ class CategoriaController extends Controller
 
     private function categoria(int $id): object
     {
-        $categoria = collect(DB::select(
-            'EXEC dbo.usp_Categorias_Consultar @id_categoria = ?, @tipo_categoria = NULL',
-            [$id]
-        ))->first();
+        $categoria = collect($this->bd()->consultar('usp_Categorias_Consultar', [
+            'id_categoria'   => $id,
+            'tipo_categoria' => null,
+        ]))->first();
 
         abort_if($categoria === null, 404);
 

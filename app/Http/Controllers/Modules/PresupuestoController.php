@@ -8,7 +8,6 @@ use App\Services\AuditoriaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class PresupuestoController extends Controller
 {
@@ -24,15 +23,17 @@ class PresupuestoController extends Controller
         $mes  = $request->has('mes')  ? ($filtros['mes']  ?? null) : (int) now()->month;
         $anio = $request->has('anio') ? ($filtros['anio'] ?? null) : (int) now()->year;
 
-        $presupuestos = collect(DB::select(
-            'EXEC dbo.usp_Presupuestos_Consultar @id_usuario = ?, @id_presupuesto = NULL, @mes = ?, @anio = ?',
-            [Auth::id(), $mes, $anio]
-        ));
+        $presupuestos = collect($this->bd()->consultar('usp_Presupuestos_Consultar', [
+            'id_usuario'     => Auth::id(),
+            'id_presupuesto' => null,
+            'mes'            => $mes,
+            'anio'           => $anio,
+        ]));
 
-        $categorias = collect(DB::select(
-            'EXEC dbo.usp_Categorias_Consultar @id_categoria = NULL, @tipo_categoria = ?',
-            ['GASTO']
-        ));
+        $categorias = collect($this->bd()->consultar('usp_Categorias_Consultar', [
+            'id_categoria'   => null,
+            'tipo_categoria' => 'GASTO',
+        ]));
 
         return view('modulos.presupuestos', compact('presupuestos', 'categorias', 'mes', 'anio'));
     }
@@ -47,11 +48,13 @@ class PresupuestoController extends Controller
         ]);
 
         return $this->ejecutar(function () use ($datos) {
-            $fila = DB::select(
-                'DECLARE @id INT; EXEC dbo.usp_Presupuestos_Insertar @id_usuario = ?, @id_categoria = ?, '
-                . '@monto_limite = ?, @mes = ?, @anio = ?, @id_presupuesto = @id OUTPUT; SELECT @id AS id_presupuesto;',
-                [Auth::id(), $datos['id_categoria'], $datos['monto_limite'], $datos['mes'], $datos['anio']]
-            )[0] ?? null;
+            $fila = $this->bd()->registrar('usp_Presupuestos_Insertar', [
+                'id_usuario'   => Auth::id(),
+                'id_categoria' => $datos['id_categoria'],
+                'monto_limite' => $datos['monto_limite'],
+                'mes'          => $datos['mes'],
+                'anio'         => $datos['anio'],
+            ], 'id_presupuesto');
 
             AuditoriaService::registrar(
                 'CREAR', 'presupuestos', $fila->id_presupuesto ?? null,
@@ -78,10 +81,12 @@ class PresupuestoController extends Controller
         ]);
 
         return $this->ejecutar(function () use ($id, $datos, $antes) {
-            DB::statement(
-                'EXEC dbo.usp_Presupuestos_Actualizar @id_presupuesto = ?, @monto_limite = ?, @mes = ?, @anio = ?',
-                [$id, $datos['monto_limite'], $datos['mes'], $datos['anio']]
-            );
+            $this->bd()->llamar('usp_Presupuestos_Actualizar', [
+                'id_presupuesto' => $id,
+                'monto_limite'   => $datos['monto_limite'],
+                'mes'            => $datos['mes'],
+                'anio'           => $datos['anio'],
+            ]);
 
             AuditoriaService::registrar(
                 'EDITAR', 'presupuestos', $id,
@@ -97,7 +102,7 @@ class PresupuestoController extends Controller
         $antes = $this->presupuestoDelUsuario($id);
 
         return $this->ejecutar(function () use ($id, $antes) {
-            DB::statement('EXEC dbo.usp_Presupuestos_Eliminar @id_presupuesto = ?', [$id]);
+            $this->bd()->llamar('usp_Presupuestos_Eliminar', ['id_presupuesto' => $id]);
 
             AuditoriaService::registrar(
                 'ELIMINAR', 'presupuestos', $id,
@@ -110,10 +115,12 @@ class PresupuestoController extends Controller
 
     private function presupuestoDelUsuario(int $id): object
     {
-        $presupuesto = collect(DB::select(
-            'EXEC dbo.usp_Presupuestos_Consultar @id_usuario = ?, @id_presupuesto = ?, @mes = NULL, @anio = NULL',
-            [Auth::id(), $id]
-        ))->first();
+        $presupuesto = collect($this->bd()->consultar('usp_Presupuestos_Consultar', [
+            'id_usuario'     => Auth::id(),
+            'id_presupuesto' => $id,
+            'mes'            => null,
+            'anio'           => null,
+        ]))->first();
 
         abort_if($presupuesto === null, 404);
 

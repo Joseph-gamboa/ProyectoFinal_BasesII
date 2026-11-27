@@ -30,10 +30,10 @@ class TransferenciaController extends Controller
             ->orderByDesc('t.id_transferencia')
             ->paginate(15);
 
-        $cuentas = collect(DB::select(
-            'EXEC dbo.usp_Cuentas_Consultar @id_usuario = ?',
-            [$idUsuario]
-        ))->where('estado', 'ACTIVA')->values();
+        $cuentas = collect($this->bd()->consultar('usp_Cuentas_Consultar', [
+            'id_usuario' => $idUsuario,
+            'id_cuenta'  => null,
+        ]))->where('estado', 'ACTIVA')->values();
 
         return view('modulos.transferencias', compact('transferencias', 'cuentas'));
     }
@@ -51,19 +51,13 @@ class TransferenciaController extends Controller
 
         return $this->ejecutar(function () use ($datos) {
             // El procedimiento valida: cuentas propias y activas, misma moneda, saldo suficiente.
-            $fila = DB::selectOne(
-                'DECLARE @id INT;
-                 EXEC dbo.usp_Transferencias_Registrar
-                     @id_usuario = ?, @id_cuenta_origen = ?, @id_cuenta_destino = ?,
-                     @monto = ?, @descripcion = ?, @id_transferencia = @id OUTPUT;',
-                [
-                    Auth::id(),
-                    $datos['id_cuenta_origen'],
-                    $datos['id_cuenta_destino'],
-                    $datos['monto'],
-                    $datos['descripcion'] ?? null,
-                ]
-            );
+            $fila = $this->bd()->registrar('usp_Transferencias_Registrar', [
+                'id_usuario'        => Auth::id(),
+                'id_cuenta_origen'  => $datos['id_cuenta_origen'],
+                'id_cuenta_destino' => $datos['id_cuenta_destino'],
+                'monto'             => $datos['monto'],
+                'descripcion'       => $datos['descripcion'] ?? null,
+            ], 'id_transferencia');
 
             AuditoriaService::registrar(
                 'CREAR', 'transferencias', $fila->id_transferencia ?? null,

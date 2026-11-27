@@ -66,7 +66,7 @@ abstract class MovimientoController extends Controller
             ->where('c.id_usuario', $idUsuario)
             ->where('m.tipo_movimiento', $this->tipo())
             ->where('m.estado', 'ACTIVO')
-            ->whereRaw('YEAR(m.fecha) = YEAR(GETDATE()) AND MONTH(m.fecha) = MONTH(GETDATE())')
+            ->whereRaw($this->bd()->condicionMesActual('m.fecha'))
             ->groupBy('c.moneda')
             ->selectRaw('c.moneda, SUM(m.monto) AS total')
             ->pluck('total', 'moneda');
@@ -76,10 +76,10 @@ abstract class MovimientoController extends Controller
             ->orderBy('nombre_cuenta')
             ->get(['id_cuenta', 'nombre_cuenta', 'moneda', 'estado']);
 
-        $categorias = collect(DB::select(
-            'EXEC dbo.usp_Categorias_Consultar @id_categoria = NULL, @tipo_categoria = ?',
-            [$this->tipo()]
-        ));
+        $categorias = collect($this->bd()->consultar('usp_Categorias_Consultar', [
+            'id_categoria'   => null,
+            'tipo_categoria' => $this->tipo(),
+        ]));
 
         return view('modulos.movimientos', [
             'tipo'        => $this->tipo(),
@@ -106,25 +106,17 @@ abstract class MovimientoController extends Controller
         return $this->ejecutar(function () use ($datos) {
             $detalle = trim($this->detalle($datos));
 
-            $fila = DB::selectOne(
-                'DECLARE @id INT;
-                 EXEC dbo.usp_Movimientos_Registrar
-                     @id_usuario = ?, @id_cuenta = ?, @id_categoria = ?,
-                     @tipo_movimiento = ?, @monto = ?, @detalle = ?,
-                     @metodo_pago = ?, @fecha = ?, @descripcion = ?,
-                     @id_movimiento = @id OUTPUT;',
-                [
-                    Auth::id(),
-                    $datos['id_cuenta'],
-                    $datos['id_categoria'],
-                    $this->tipo(),
-                    $datos['monto'],
-                    $detalle,
-                    $this->metodoPago($datos),
-                    $datos['fecha'] ?? null,
-                    $datos['descripcion'] ?? null,
-                ]
-            );
+            $fila = $this->bd()->registrar('usp_Movimientos_Registrar', [
+                'id_usuario'      => Auth::id(),
+                'id_cuenta'       => $datos['id_cuenta'],
+                'id_categoria'    => $datos['id_categoria'],
+                'tipo_movimiento' => $this->tipo(),
+                'monto'           => $datos['monto'],
+                'detalle'         => $detalle,
+                'metodo_pago'     => $this->metodoPago($datos),
+                'fecha'           => $datos['fecha'] ?? null,
+                'descripcion'     => $datos['descripcion'] ?? null,
+            ], 'id_movimiento');
 
             AuditoriaService::registrar(
                 'CREAR', 'movimientos', $fila->id_movimiento ?? null,
@@ -164,7 +156,8 @@ abstract class MovimientoController extends Controller
         }
 
         return $this->ejecutar(function () use ($id, $mov) {
-            DB::statement('DELETE FROM dbo.Movimientos WHERE id_movimiento = ?', [$id]);
+            // SQL Server: el DELETE lo convierte en anulación el trigger. MariaDB: usp_Movimientos_Anular.
+            $this->bd()->anularMovimiento($id);
 
             AuditoriaService::registrar(
                 'ANULAR', 'movimientos', $id,

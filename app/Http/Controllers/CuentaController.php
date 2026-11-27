@@ -2,22 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EjecutaProcedimientos;
 use App\Services\AuditoriaService;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class CuentaController extends Controller
 {
+    use EjecutaProcedimientos;
+
     public function index()
     {
-        $cuentas = collect(DB::select(
-            'EXEC dbo.usp_Cuentas_Consultar @id_usuario = ?',
-            [Auth::id()]
-        ));
+        $cuentas = collect($this->bd()->consultar('usp_Cuentas_Consultar', [
+            'id_usuario' => Auth::id(),
+            'id_cuenta'  => null,
+        ]));
 
         return view('cuentas.index', compact('cuentas'));
     }
@@ -35,12 +36,13 @@ class CuentaController extends Controller
             $nombre = trim($datos['nombre_cuenta']);
             $saldo  = $datos['saldo_inicial'] ?? 0;
 
-            $fila = DB::select(
-                'DECLARE @id INT; EXEC dbo.usp_Cuentas_Insertar @id_usuario = ?, @nombre_cuenta = ?, '
-                . '@tipo_cuenta = ?, @moneda = ?, @saldo_inicial = ?, @id_cuenta = @id OUTPUT; '
-                . 'SELECT @id AS id_cuenta;',
-                [Auth::id(), $nombre, $datos['tipo_cuenta'], $datos['moneda'], $saldo]
-            )[0] ?? null;
+            $fila = $this->bd()->registrar('usp_Cuentas_Insertar', [
+                'id_usuario'    => Auth::id(),
+                'nombre_cuenta' => $nombre,
+                'tipo_cuenta'   => $datos['tipo_cuenta'],
+                'moneda'        => $datos['moneda'],
+                'saldo_inicial' => $saldo,
+            ], 'id_cuenta');
 
             AuditoriaService::registrar(
                 'CREAR', 'cuentas', $fila->id_cuenta ?? null,
@@ -69,11 +71,13 @@ class CuentaController extends Controller
         return $this->ejecutar(function () use ($id, $datos, $cuenta) {
             $nombre = trim($datos['nombre_cuenta']);
 
-            DB::statement(
-                'EXEC dbo.usp_Cuentas_Actualizar @id_cuenta = ?, @nombre_cuenta = ?, '
-                . '@tipo_cuenta = ?, @moneda = ?, @estado = ?',
-                [$id, $nombre, $datos['tipo_cuenta'], $datos['moneda'], $cuenta->estado]
-            );
+            $this->bd()->llamar('usp_Cuentas_Actualizar', [
+                'id_cuenta'     => $id,
+                'nombre_cuenta' => $nombre,
+                'tipo_cuenta'   => $datos['tipo_cuenta'],
+                'moneda'        => $datos['moneda'],
+                'estado'        => $cuenta->estado,
+            ]);
 
             AuditoriaService::registrar(
                 'EDITAR', 'cuentas', $id,
@@ -99,11 +103,13 @@ class CuentaController extends Controller
         ]);
 
         return $this->ejecutar(function () use ($id, $cuenta, $datos) {
-            DB::statement(
-                'EXEC dbo.usp_Cuentas_Actualizar @id_cuenta = ?, @nombre_cuenta = ?, '
-                . '@tipo_cuenta = ?, @moneda = ?, @estado = ?',
-                [$id, $cuenta->nombre_cuenta, $cuenta->tipo_cuenta, $cuenta->moneda, $datos['estado']]
-            );
+            $this->bd()->llamar('usp_Cuentas_Actualizar', [
+                'id_cuenta'     => $id,
+                'nombre_cuenta' => $cuenta->nombre_cuenta,
+                'tipo_cuenta'   => $cuenta->tipo_cuenta,
+                'moneda'        => $cuenta->moneda,
+                'estado'        => $datos['estado'],
+            ]);
 
             AuditoriaService::registrar(
                 $datos['estado'] === 'CERRADA' ? 'CERRAR' : 'REABRIR', 'cuentas', $id,
@@ -119,7 +125,7 @@ class CuentaController extends Controller
         $cuenta = $this->cuentaDelUsuario($id);
 
         return $this->ejecutar(function () use ($id, $cuenta) {
-            DB::statement('EXEC dbo.usp_Cuentas_Eliminar @id_cuenta = ?', [$id]);
+            $this->bd()->llamar('usp_Cuentas_Eliminar', ['id_cuenta' => $id]);
 
             AuditoriaService::registrar(
                 'ELIMINAR', 'cuentas', $id,
@@ -133,10 +139,10 @@ class CuentaController extends Controller
     /** Devuelve la cuenta solo si es del usuario con sesión; si no, error 404. */
     private function cuentaDelUsuario(int $id): object
     {
-        $cuenta = collect(DB::select(
-            'EXEC dbo.usp_Cuentas_Consultar @id_usuario = ?, @id_cuenta = ?',
-            [Auth::id(), $id]
-        ))->first();
+        $cuenta = collect($this->bd()->consultar('usp_Cuentas_Consultar', [
+            'id_usuario' => Auth::id(),
+            'id_cuenta'  => $id,
+        ]))->first();
 
         abort_if($cuenta === null, 404);
 
@@ -153,29 +159,5 @@ class CuentaController extends Controller
             'saldo'         => (float) $c->saldo,
             'estado'        => $c->estado,
         ];
-    }
-
-    /** Ejecuta la acción y, si un procedimiento la rechaza, muestra su mensaje. */
-    private function ejecutar(callable $accion, string $mensajeExito): RedirectResponse
-    {
-        try {
-            $accion();
-        } catch (QueryException $e) {
-            return back()->withInput()->with('error', $this->mensajeDeSql($e));
-        }
-
-        return back()->with('status', $mensajeExito);
-    }
-
-    /** Extrae solo el texto que escribió el procedimiento con THROW. */
-    private function mensajeDeSql(QueryException $e): string
-    {
-        $texto = $e->getPrevious()?->getMessage() ?? $e->getMessage();
-
-        if (preg_match('/\[SQL Server\](.+)$/s', $texto, $m)) {
-            return trim($m[1]);
-        }
-
-        return 'No se pudo completar la operación. Intente de nuevo.';
     }
 }

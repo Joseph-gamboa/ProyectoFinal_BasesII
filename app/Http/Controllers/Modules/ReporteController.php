@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Modules;
 
 use App\Http\Controllers\Controller;
+use App\Services\Database\Procedimientos;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use PDO;
 use PDOException;
 
 class ReporteController extends Controller
@@ -27,9 +26,7 @@ class ReporteController extends Controller
         try {
             [$balances, $presupuestos, $cuentas, $metas] = array_pad($this->resumen($mes, $anio), 4, []);
         } catch (PDOException $e) {
-            $error = preg_match('/\[SQL Server\](.+)$/s', $e->getMessage(), $m)
-                ? trim($m[1])
-                : 'No se pudo generar el reporte. Intente de nuevo.';
+            $error = app(Procedimientos::class)->mensajeDeError($e);
         }
 
         return view('modulos.reportes', compact('mes', 'anio', 'balances', 'presupuestos', 'cuentas', 'metas', 'error'));
@@ -37,16 +34,10 @@ class ReporteController extends Controller
 
     private function resumen(int $mes, int $anio): array
     {
-        $st = DB::connection()->getPdo()->prepare(
-            'EXEC dbo.usp_Reporte_ResumenFinanciero @id_usuario = ?, @mes = ?, @anio = ?'
-        );
-        $st->execute([Auth::id(), $mes, $anio]);
-
-        $conjuntos = [];
-        do {
-            $conjuntos[] = $st->columnCount() > 0 ? $st->fetchAll(PDO::FETCH_OBJ) : [];
-        } while ($st->nextRowset());
-
-        return $conjuntos;
+        return app(Procedimientos::class)->conjuntos('usp_Reporte_ResumenFinanciero', [
+            'id_usuario' => Auth::id(),
+            'mes'        => $mes,
+            'anio'       => $anio,
+        ]);
     }
 }

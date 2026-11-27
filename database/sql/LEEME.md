@@ -25,20 +25,26 @@ Abrir cada archivo en SQL Server Management Studio y ejecutarlo con F5,
 | 7 | `07_sp_metas_aportar.sql` | Procedimiento grande 3: aportar a una meta de ahorro |
 | 8 | `08_sp_reporte_resumen.sql` | Procedimiento de reporte mensual |
 | 9 | `09_triggers.sql` | Los 3 triggers especiales (después de los procedimientos) |
-| 10 | `10_indices.sql` | Índices adicionales para las consultas frecuentes |
+| 10 | `10_deudas.sql` | Agrega Deudas y PagosDeuda, sus 5 procedimientos y su trigger |
+| 11 | `10_indices.sql` | Índices adicionales para las consultas frecuentes de las 15 tablas |
 
-Los archivos 02 al 10 se pueden volver a ejecutar sin problema.
+Los archivos de los pasos 2 al 11 se pueden volver a ejecutar sin problema.
 El archivo 01 no: si hay que repetirlo, primero se borra y se vuelve a crear la base.
+
+Aunque los dos últimos archivos comienzan con `10_`, ejecutar primero
+`10_deudas.sql` y después `10_indices.sql`, siguiendo la tabla.
 
 ## Comprobar que quedó bien
 
 ```sql
-SELECT name FROM sys.tables ORDER BY name;      -- deben salir 13 tablas
-SELECT name FROM sys.procedures ORDER BY name;  -- deben salir 32 procedimientos
-SELECT name FROM sys.triggers ORDER BY name;    -- deben salir 3 triggers
+SELECT name FROM sys.tables ORDER BY name;      -- deben salir 15 tablas
+SELECT name FROM sys.procedures ORDER BY name;  -- deben salir 37 procedimientos
+SELECT name FROM sys.triggers ORDER BY name;    -- deben salir 4 triggers
 ```
 
-El script 10 conserva `IX_Movimientos_Cuenta_Fecha` si ya se creó manualmente.
+`10_indices.sql` conserva los índices que ya existen con los mismos nombres,
+incluido `IX_Movimientos_Cuenta_Fecha` si se creó manualmente.
+Su consulta final debe mostrar 6 índices, todos con `deshabilitado = 0`.
 
 ## Importante
 

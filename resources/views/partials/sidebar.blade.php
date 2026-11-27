@@ -65,7 +65,7 @@
   </div>
 
   <div class="sidebar-profile">
-    <img src="{{ asset('assets/images/avatar.png') }}" alt="{{ $usuario->nombre_completo }}" class="sidebar-profile-img">
+    <img src="{{ asset('assets/images/avatar.jpg') }}" alt="{{ $usuario->nombre_completo }}" class="sidebar-profile-img">
     <div class="sidebar-profile-info">
       <div class="sidebar-profile-name">{{ $usuario->nombre_completo }}</div>
       <div class="sidebar-profile-email">{{ $usuario->correo }}</div>

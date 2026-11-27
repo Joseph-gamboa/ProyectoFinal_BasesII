@@ -3183,5 +3183,10 @@ span.flatpickr-weekday {
     color: var(--brand-lime) !important;
 }
 
+.navbar-custom .navbar-actions {
+    margin-left: auto;
+    grid-column: -2 / -1;
+    justify-self: end;
+}
 
 

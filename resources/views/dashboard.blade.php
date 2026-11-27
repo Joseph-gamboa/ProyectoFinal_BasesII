@@ -29,7 +29,7 @@
             <div class="alert-green-date">Cuentas activas en colones</div>
             <div class="alert-green-text">{{ $crc($balance) }}</div>
           </div>
-          <a href="{{ route('modulo', 'cuentas') }}" class="alert-green-link z-index-2">
+          <a href="{{ route('cuentas.index') }}" class="alert-green-link z-index-2">
             <span>Ver cuentas</span>
             <i class="bi bi-arrow-right"></i>
           </a>

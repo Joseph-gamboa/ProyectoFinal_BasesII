@@ -9,7 +9,7 @@
 @section('content')
   @php
     $clases = [
-        'CREAR' => 'success', 'REABRIR' => 'success', 'APORTAR' => 'success',
+        'CREAR' => 'success', 'REABRIR' => 'success', 'APORTAR' => 'success', 'PAGAR' => 'success',
         'ELIMINAR' => 'failed', 'CERRAR' => 'failed', 'ANULAR' => 'failed',
     ];
     $json = fn ($dato) => json_encode($dato, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

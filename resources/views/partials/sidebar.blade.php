@@ -15,7 +15,7 @@
   $planificacion = [
     ['presupuestos.index', 'bi-pie-chart',  'Presupuestos'],
     ['ahorros.index',      'bi-piggy-bank', 'Ahorros'],
-    ['modulo:deudas',       'bi-cash-coin',  'Deudas'],
+    ['deudas.index',        'bi-cash-coin',  'Deudas'],
     ['reportes.index',     'bi-file-earmark-bar-graph', 'Reportes'],
   ];
   $sistema = [

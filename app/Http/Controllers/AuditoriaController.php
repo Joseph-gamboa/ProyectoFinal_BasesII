@@ -14,8 +14,8 @@ use Illuminate\Validation\Rule;
  */
 class AuditoriaController extends Controller
 {
-    private const MODULOS  = ['cuentas', 'movimientos', 'transferencias', 'presupuestos', 'metas', 'categorias', 'usuarios'];
-    private const ACCIONES = ['CREAR', 'EDITAR', 'CERRAR', 'REABRIR', 'ELIMINAR', 'ANULAR', 'APORTAR'];
+    private const MODULOS  = ['cuentas', 'movimientos', 'transferencias', 'presupuestos', 'metas', 'deudas', 'categorias', 'usuarios'];
+    private const ACCIONES = ['CREAR', 'EDITAR', 'CERRAR', 'REABRIR', 'ELIMINAR', 'ANULAR', 'APORTAR', 'PAGAR'];
     private const ZONA     = 'America/Costa_Rica';
 
     public function index(Request $request)

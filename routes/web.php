@@ -13,6 +13,8 @@ use App\Http\Controllers\Modules\PresupuestoController;
 use App\Http\Controllers\Modules\ReporteController;
 use App\Http\Controllers\Modules\TransferenciaController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Modules\DeudaController;
+
 
 Route::get('/', fn () => redirect()->route('dashboard'));
 
@@ -74,8 +76,10 @@ Route::middleware('auth')->group(function () {
     // Auditoría (lee MongoDB)
     Route::get('/auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
 
-    // Módulos que todavía son pantallas provisionales (Deudas: aún no tiene tablas en SQL)
-    Route::get('/{modulo}', ModuloController::class)
-        ->whereIn('modulo', ['deudas'])
-        ->name('modulo');
+       // Deudas (préstamos y pagos)
+    Route::get('/deudas', [DeudaController::class, 'index'])->name('deudas.index');
+    Route::post('/deudas', [DeudaController::class, 'store'])->name('deudas.store');
+    Route::put('/deudas/{id}', [DeudaController::class, 'update'])->whereNumber('id')->name('deudas.update');
+    Route::delete('/deudas/{id}', [DeudaController::class, 'destroy'])->whereNumber('id')->name('deudas.destroy');
+    Route::post('/deudas/{id}/pagar', [DeudaController::class, 'pagar'])->whereNumber('id')->name('deudas.pagar');
 });

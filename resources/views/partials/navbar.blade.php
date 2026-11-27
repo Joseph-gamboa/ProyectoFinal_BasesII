@@ -17,16 +17,16 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-quick-action" aria-labelledby="quick-actions-dropdown">
                 <li class="dropdown-header">Acciones rápidas</li>
-                <li><a class="dropdown-item" href="{{ route('modulo', 'ingresos') }}"><i
+                <li><a class="dropdown-item" href="{{ route('ingresos.index') }}"><i
                             class="bi bi-arrow-down-circle"></i> Registrar ingreso</a></li>
-                <li><a class="dropdown-item" href="{{ route('modulo', 'gastos') }}"><i
+                <li><a class="dropdown-item" href="{{ route('gastos.index') }}"><i
                             class="bi bi-arrow-up-circle"></i> Registrar gasto</a></li>
-                <li><a class="dropdown-item" href="{{ route('modulo', 'transferencias') }}"><i
+                <li><a class="dropdown-item" href="{{ route('transferencias.index') }}"><i
                             class="bi bi-arrow-left-right"></i> Nueva transferencia</a></li>
                 <li>
                     <hr class="dropdown-divider">
                 </li>
-                <li><a class="dropdown-item" href="{{ route('modulo', 'cuentas') }}"><i class="bi bi-bank"></i> Nueva
+                <li><a class="dropdown-item" href="{{ route('cuentas.index') }}"><i class="bi bi-bank"></i> Nueva
                         cuenta</a></li>
             </ul>
         </div>
@@ -43,7 +43,6 @@
         <button class="navbar-action-btn me-1" aria-label="Pantalla completa" id="btn-fullscreen">
             <i class="bi bi-arrows-fullscreen"></i>
         </button>
-
         <!-- Notificaciones: se conectarán a la colección "notificaciones" de MongoDB -->
         <div class="dropdown">
             <button class="navbar-action-btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
